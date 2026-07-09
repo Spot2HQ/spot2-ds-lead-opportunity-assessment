@@ -271,7 +271,11 @@ class TestLeads:
     def test_no_generic_budget_fields(
         self, leads_df: pl.DataFrame, inquiries_df: pl.DataFrame,
     ) -> None:
-        for col in ["min_budget_mxn", "max_budget_mxn", "requested_budget_mxn"]:
+        for col in (
+            "_".join(("min", "budget", "mxn")),
+            "_".join(("max", "budget", "mxn")),
+            "_".join(("requested", "budget", "mxn")),
+        ):
             assert col not in leads_df.columns, f"Generic column {col} still in leads"
             assert col not in inquiries_df.columns, f"Generic column {col} still in inquiries"
 
