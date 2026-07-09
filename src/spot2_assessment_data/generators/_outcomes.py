@@ -7,6 +7,7 @@ in any candidate-facing output.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Final
 
 import numpy as np
 import polars as pl
@@ -14,6 +15,12 @@ import polars as pl
 from spot2_assessment_data.config import AssessmentConfig
 from spot2_assessment_data.rng import SeedRng
 
+_SECTOR_REF: Final[dict[str, float]] = {
+    "Industrial": 150,
+    "Office": 350,
+    "Retail": 300,
+    "Land": 50,
+}
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     """Numerically stable sigmoid."""
@@ -41,11 +48,32 @@ def generate_outcomes(
     leads_source = np.array(leads_df["source"].to_list())
     leads_sector = np.array(leads_df["search_sector"].to_list())
     leads_user_type = np.array(leads_df["user_type"].to_list())
-    leads_max_budget = leads_df["max_budget_mxn"].to_numpy()
+    leads_max_rent = leads_df["max_budget_mxn_rent_monthly"].to_numpy()
+    leads_max_sale = leads_df["max_budget_mxn_sale_total"].to_numpy()
+    leads_area = leads_df["target_area_sqm"].to_numpy()
     leads_prior_inq = leads_df["prior_inquiries"].to_numpy()
     leads_created = leads_df["created_at"].to_list()
 
-    median_budget = float(np.median(leads_max_budget[np.isfinite(leads_max_budget)]))
+    rent_refs = np.array([_SECTOR_REF.get(sector, 200) for sector in leads_sector])
+    sale_refs = rent_refs * 180
+    rent_affordability = np.divide(
+        leads_max_rent,
+        leads_area * rent_refs,
+        out=np.zeros_like(leads_max_rent),
+        where=leads_max_rent > 0,
+    )
+    sale_affordability = np.divide(
+        leads_max_sale,
+        leads_area * sale_refs,
+        out=np.zeros_like(leads_max_sale),
+        where=leads_max_sale > 0,
+    )
+    affordability = np.maximum(rent_affordability, sale_affordability)
+    median_affordability = (
+        float(np.median(affordability[affordability > 0]))
+        if (affordability > 0).any()
+        else 1.0
+    )
 
     # --- Build inquiry index per lead ---
     inq_by_lead: dict[int, list[int]] = {}
@@ -90,7 +118,7 @@ def generate_outcomes(
     lead_logit += 0.7 * (leads_source == "referral").astype(np.float64)
     lead_logit += 0.5 * (leads_sector == "Office").astype(np.float64)
     lead_logit += 0.4 * (leads_user_type == "tenant_direct").astype(np.float64)
-    lead_logit += 0.3 * (leads_max_budget > median_budget).astype(np.float64)
+    lead_logit += 0.3 * (affordability > median_affordability).astype(np.float64)
     pi_arr = leads_prior_inq.astype(np.float64)
     lead_logit += 0.4 * ((pi_arr > 1) & (pi_arr <= 5)).astype(np.float64)
 
