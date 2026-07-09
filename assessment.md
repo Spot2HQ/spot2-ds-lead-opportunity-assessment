@@ -37,7 +37,9 @@ Cada tabla esta disponible en ambos formatos, CSV y Parquet, desde el paquete de
 
 El archivo `outcomes.*` (CSV y Parquet) no se entrega al candidato. Se usa solo para evaluacion.
 
-Lee el detalle de cada tabla, sus columnas y reglas de generacion en `synthetic-data-guide.md`.
+Parte del reto consiste en definir y construir tu propio target o proxy de conversión a partir de los datos disponibles. Debes justificar qué evento consideras como éxito (¿visita agendada? ¿respuesta del broker? ¿cierre?), qué ventana temporal o punto de corte utilizas y cuáles son las limitaciones de tu definición.
+
+El detalle de cada columna, sus unidades y cómo interpretarlas está en `feature_dictionary.md`.
 
 ---
 
@@ -66,9 +68,9 @@ Una pagina (maximo), para una audiencia de Producto y C-Level. Sin codigo. Sin j
 - Impacto esperado en el negocio.
 - Una visualizacion que resuma la historia.
 
-### 3. Lead Quality Model
+### 3. Modelo de Calidad del Lead (Lead Quality Model)
 
-Modelo que prediga P(conversion | lead). Usa los datos de leads e inquiries.
+Construye un modelo que estime P(conversión | lead) usando los datos de leads e inquiries. El score resultante es una estimación construida por ti, no una etiqueta de ground truth oculta.
 
 **Que esperamos:**
 - Feature engineering justificado (sector, ubicacion, presupuesto, tipo de usuario, historial).
@@ -153,7 +155,7 @@ Escribenos maximo 2 parrafos sobre como ves el futuro de este sistema.
 | Comunicacion de negocio (one-pager, presentacion) | 15% |
 | Pensamiento senior (tradeoffs, escalabilidad, producto, sesgos) | 15% |
 
-El detalle completo de la rubrica esta en `reviewer-rubric.md`.
+Los criterios detallados arriba cubren las áreas de evaluación.
 
 ---
 

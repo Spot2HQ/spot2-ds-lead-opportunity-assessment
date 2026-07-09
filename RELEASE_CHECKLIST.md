@@ -4,6 +4,7 @@
 
 ### 1. Update docs
 - [ ] Review `assessment.md` — are all 8 deliverables still relevant?
+- [ ] Review `feature_dictionary.md` — do field definitions, units, nullability, and join keys match the candidate data?
 - [ ] Update `synthetic-data-guide.md` if generation rules changed
 - [ ] Update `reviewer-rubric.md` if evaluation criteria changed
 - [ ] Update year in config `config/default.yaml` temporal_range
@@ -25,7 +26,7 @@ uv run python scripts/generate_assessment_data.py --seed 42 --config config/defa
 uv run python scripts/package_candidate_bundle.py --data-dir data --output dist/spot2-ds-lead-opportunity-assessment-<year>.zip
 ```
 - [ ] Verify bundle contents: `python3 -c "import zipfile; [print(n) for n in sorted(zipfile.ZipFile('dist/spot2-ds-lead-opportunity-assessment-<year>.zip').namelist())]"`
-- [ ] Confirm NO outcomes*, evaluation/, internal/, synthetic-data-guide, reviewer-rubric, scripts/, src/, tests/, config/, .omo/, .git/ in bundle
+- [ ] Confirm `feature_dictionary.md` is expected in the ZIP and no `synthetic-data-guide.md` or `reviewer-rubric.md` is in the ZIP; also confirm NO outcomes*, evaluation/, internal/, scripts/, src/, tests/, config/, .omo/, .git/ in bundle
 
 ### 5. Internal review
 - [ ] Review hidden `data/evaluation/parquet/outcomes.parquet` base rates
