@@ -17,10 +17,10 @@ from spot2_assessment_data.rng import SeedRng
 SECTOR_NAMES: Final[list[str]] = ["Industrial", "Office", "Retail", "Land"]
 # Price-per-sqm reference (MXN rent) for budget computation per sector.
 _SECTOR_PRICE_MEAN: Final[dict[str, float]] = {
-    "Industrial": 8_000,
-    "Office": 25_000,
-    "Retail": 18_000,
-    "Land": 5_000,
+    "Industrial": 150,
+    "Office": 350,
+    "Retail": 300,
+    "Land": 50,
 }
 
 _USER_TYPES: Final[list[str]] = ["broker", "tenant_direct", "investor", "developer"]
@@ -127,14 +127,19 @@ def generate_leads(
 
     # --- Area and budget ---
     area_arr = np.array([rng.log_normal(500, 400, 30, 10000) for _ in range(n)])
-    price_means = np.array([_SECTOR_PRICE_MEAN[s] for s in search_sector])
-    budget_factor = rng.rng.uniform(0.7, 0.9, size=n)
-    min_budget = (area_arr * price_means * budget_factor).round(2)
-    max_factor = rng.rng.uniform(1.1, 1.5, size=n)
-    max_budget = (min_budget * max_factor).round(2)
-    # Ensure max >= min
-    mask = max_budget < min_budget
-    max_budget[mask] = min_budget[mask] * 1.1
+    rent_price_means = np.array([_SECTOR_PRICE_MEAN[s] for s in search_sector])
+    rent_reference = area_arr * rent_price_means
+    sale_reference = rent_reference * 180
+    modalities = np.array(search_modality)
+    rent_applicable = np.isin(modalities, ["rent", "both"])
+    sale_applicable = np.isin(modalities, ["sale", "both"])
+    affordability_factor = rng.rng.uniform(0.7, 0.9, size=n)
+    min_budget_rent = (rent_reference * affordability_factor).round(2)
+    min_budget_sale = (sale_reference * affordability_factor).round(2)
+    max_budget_rent = (min_budget_rent * rng.rng.uniform(1.1, 1.5, size=n)).round(2)
+    max_budget_sale = (min_budget_sale * rng.rng.uniform(1.1, 1.5, size=n)).round(2)
+    max_budget_rent = np.maximum(max_budget_rent, min_budget_rent)
+    max_budget_sale = np.maximum(max_budget_sale, min_budget_sale)
 
     # --- Prior activity ---
     prior_searches = _assign_binned(rng, n, _PRIOR_SEARCH_BINS, [0, (1, 3), (4, 10), (11, 60)])
@@ -145,12 +150,19 @@ def generate_leads(
     has_converted_before = (rng.rng.random(n) < hcb_prob).tolist()
 
     # --- _conversion_signal (hidden, used for lead_score_internal correlation) ---
-    median_budget = float(np.median(max_budget))
+    rent_affordability = np.divide(
+        max_budget_rent, rent_reference, out=np.zeros(n), where=rent_applicable,
+    )
+    sale_affordability = np.divide(
+        max_budget_sale, sale_reference, out=np.zeros(n), where=sale_applicable,
+    )
+    normalized_budget = np.maximum(rent_affordability, sale_affordability)
+    median_affordability = float(np.median(normalized_budget[normalized_budget > 0]))
     signal = np.zeros(n, dtype=np.float64)
     signal += 0.7 * (np.array(source) == "referral").astype(np.float64)
     signal += 0.5 * (np.array(search_sector) == "Office").astype(np.float64)
     signal += 0.4 * (np.array(user_type) == "tenant_direct").astype(np.float64)
-    signal += 0.3 * (max_budget > median_budget).astype(np.float64)
+    signal += 0.3 * (normalized_budget > median_affordability).astype(np.float64)
     pi_arr = np.array(prior_inquiries, dtype=np.float64)
     signal += 0.4 * ((pi_arr > 1) & (pi_arr <= 5)).astype(np.float64)
     signal /= 2.3  # normalize to ~[0, 1]
@@ -172,6 +184,9 @@ def generate_leads(
     created_at = [dt.strftime("%Y-%m-%d %H:%M:%S") for dt in created_at_dt]
 
     # --- Build DataFrame ---
+    def _nullable(values: np.ndarray, mask: np.ndarray) -> list[float | None]:
+        return [float(value) if applicable else None for value, applicable in zip(values, mask)]
+
     df = pl.DataFrame({
         "lead_id": lead_ids,
         "user_type": user_type,
@@ -180,8 +195,10 @@ def generate_leads(
         "search_sector": search_sector,
         "search_modality": search_modality,
         "target_area_sqm": area_arr.round(1),
-        "min_budget_mxn": min_budget.round(2),
-        "max_budget_mxn": max_budget.round(2),
+        "min_budget_mxn_rent_monthly": _nullable(min_budget_rent, rent_applicable),
+        "max_budget_mxn_rent_monthly": _nullable(max_budget_rent, rent_applicable),
+        "min_budget_mxn_sale_total": _nullable(min_budget_sale, sale_applicable),
+        "max_budget_mxn_sale_total": _nullable(max_budget_sale, sale_applicable),
         "preferred_state": preferred_state,
         "preferred_municipality": preferred_municipality,
         "preferred_corridor": preferred_corridor,
@@ -193,7 +210,7 @@ def generate_leads(
         "created_at": created_at,
         # Hidden columns (stripped before candidate output):
         "_conversion_signal": signal.round(4),
-        "_median_budget": round(median_budget, 2),
+        "_median_affordability": round(median_affordability, 4),
     })
 
     # --- Outliers ---
@@ -206,14 +223,27 @@ def generate_leads(
         .alias("target_area_sqm"),
     )
 
-    # max_budget_mxn > 3x IQR: 3%
-    q1, q3_val = np.percentile(max_budget, 25), np.percentile(max_budget, 75)
-    iqr = q3_val - q1
-    extreme = (rng.rng.random(n) < 0.03).astype(np.float64)
-    extreme_budget = max_budget * rng.rng.uniform(3.0, 5.0, size=n)
-    max_budget_final = np.where(extreme, extreme_budget, max_budget)
+    rent_extreme = (rng.rng.random(n) < 0.03) & rent_applicable
+    sale_extreme = (rng.rng.random(n) < 0.03) & sale_applicable
+    max_budget_rent_final = np.where(
+        rent_extreme,
+        max_budget_rent * rng.rng.uniform(3.0, 5.0, size=n),
+        max_budget_rent,
+    )
+    max_budget_sale_final = np.where(
+        sale_extreme,
+        max_budget_sale * rng.rng.uniform(3.0, 5.0, size=n),
+        max_budget_sale,
+    )
     df = df.with_columns(
-        pl.Series("max_budget_mxn", max_budget_final.round(2))
+        pl.Series(
+            "max_budget_mxn_rent_monthly",
+            _nullable(max_budget_rent_final.round(2), rent_applicable),
+        ),
+        pl.Series(
+            "max_budget_mxn_sale_total",
+            _nullable(max_budget_sale_final.round(2), sale_applicable),
+        ),
     )
 
     # prior_inquiries > 50: 3%
@@ -229,7 +259,8 @@ def generate_leads(
     df = _apply_mcar(df, "company_size", 0.05, rng)
     df = _apply_mcar(df, "industry", 0.03, rng)
     df = _apply_mcar(df, "preferred_corridor", 0.08, rng)
-    df = _apply_mcar(df, "min_budget_mxn", 0.04, rng)
+    df = _apply_mcar(df, "min_budget_mxn_rent_monthly", 0.04, rng, rent_applicable)
+    df = _apply_mcar(df, "min_budget_mxn_sale_total", 0.04, rng, sale_applicable)
 
     # --- Correct dtypes ---
     df = df.with_columns([
@@ -261,10 +292,18 @@ def _assign_binned(
     return result
 
 
-def _apply_mcar(df: pl.DataFrame, col: str, rate: float, rng: SeedRng) -> pl.DataFrame:
+def _apply_mcar(
+    df: pl.DataFrame,
+    col: str,
+    rate: float,
+    rng: SeedRng,
+    applicable_mask: np.ndarray | None = None,
+) -> pl.DataFrame:
     """Apply MCAR missingness to a column."""
     n = len(df)
     mask = rng.rng.random(n) < rate
+    if applicable_mask is not None:
+        mask &= applicable_mask
     return df.with_columns(
         pl.when(pl.Series(mask)).then(None).otherwise(pl.col(col)).alias(col)
     )

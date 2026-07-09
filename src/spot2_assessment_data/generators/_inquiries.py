@@ -31,13 +31,12 @@ def generate_inquiries(
     20% fully random.
     """
     n_leads = len(leads_df)
-    spot_ids_all = spots_df["spot_id"].to_list()
-    spot_sectors = spots_df["sector_name"].to_list()
-
     lead_ids_list = leads_df["lead_id"].to_list()
     lead_sectors = leads_df["search_sector"].to_list()
+    lead_modalities = leads_df["search_modality"].to_list()
     lead_target_area = leads_df["target_area_sqm"].to_numpy()
-    lead_max_budget = leads_df["max_budget_mxn"].to_numpy()
+    lead_max_budget_rent = leads_df["max_budget_mxn_rent_monthly"].to_list()
+    lead_max_budget_sale = leads_df["max_budget_mxn_sale_total"].to_list()
     lead_created = leads_df["created_at"].to_list()
     lead_state_list = leads_df["preferred_state"].to_list()
 
@@ -45,16 +44,6 @@ def generate_inquiries(
     spot_lookup: dict[int, dict] = {}
     for row in spots_df.iter_rows(named=True):
         spot_lookup[row["spot_id"]] = row
-
-    # Build sector -> spots index
-    sector_to_spots: dict[str, list[int]] = {}
-    for sid, sec in zip(spot_ids_all, spot_sectors):
-        sector_to_spots.setdefault(sec, []).append(sid)
-
-    # Build state -> spots index
-    state_to_spots: dict[str, list[int]] = {}
-    for row in spots_df.iter_rows(named=True):
-        state_to_spots.setdefault(row["state"], []).append(row["spot_id"])
 
     # Generate inquiries per lead
     inquiry_rows: list[dict] = []
@@ -64,6 +53,7 @@ def generate_inquiries(
         n_inquiries = int(rng.rng.integers(1, 9))
         lid = lead_ids_list[lead_idx]
         lsec = lead_sectors[lead_idx]
+        lmodality = lead_modalities[lead_idx]
         lstate = lead_state_list[lead_idx] if isinstance(lead_state_list[lead_idx], str) else None
 
         # Parse lead created_at
@@ -76,9 +66,21 @@ def generate_inquiries(
             except (ValueError, TypeError):
                 lcreated = datetime(2025, 1, 1)
 
-        # Pre-filter pools
-        sector_pool = sector_to_spots.get(lsec, []) if lsec else []
-        state_pool = state_to_spots.get(lstate, []) if lstate else []
+        compatible_spot_ids = [
+            spot_id
+            for spot_id, spot in spot_lookup.items()
+            if lmodality == "both"
+            or (lmodality == "rent" and spot["modality"] in ("rent", "both"))
+            or (lmodality == "sale" and spot["modality"] in ("sale", "both"))
+        ]
+        sector_pool = [
+            spot_id for spot_id in compatible_spot_ids
+            if spot_lookup[spot_id]["sector_name"] == lsec
+        ]
+        state_pool = [
+            spot_id for spot_id in compatible_spot_ids
+            if spot_lookup[spot_id]["state"] == lstate
+        ]
 
         for _ in range(n_inquiries):
             # Weighted spot selection: 60% same sector, 20% same state, 20% random
@@ -88,7 +90,7 @@ def generate_inquiries(
             elif rand < 0.80 and state_pool:
                 sid = state_pool[rng.rng.integers(0, len(state_pool))]
             else:
-                sid = spot_ids_all[rng.rng.integers(0, len(spot_ids_all))]
+                sid = compatible_spot_ids[rng.rng.integers(0, len(compatible_spot_ids))]
 
             spot_row = spot_lookup[sid]
             spot_created = spot_row["created_at"]
@@ -119,12 +121,24 @@ def generate_inquiries(
             req_area = round(max(10, lead_area + rng.rng.normal(0, lead_area * 0.15)), 1)
             req_area = round(max(0.3 * spot_area, min(req_area, 5.0 * spot_area)), 1)
 
-            # requested_budget: cap at lead.max_budget_mxn
-            lead_budget = float(lead_max_budget[lead_idx])
-            req_budget = round(
-                max(0, lead_budget * rng.rng.uniform(0.7, 1.1)), 2
+            rent_budget = lead_max_budget_rent[lead_idx]
+            sale_budget = lead_max_budget_sale[lead_idx]
+            req_rent_budget = (
+                min(
+                    round(max(0, float(rent_budget) * rng.rng.uniform(0.7, 1.1)), 2),
+                    float(rent_budget),
+                )
+                if rent_budget is not None
+                else None
             )
-            req_budget = min(req_budget, lead_budget)
+            req_sale_budget = (
+                min(
+                    round(max(0, float(sale_budget) * rng.rng.uniform(0.7, 1.1)), 2),
+                    float(sale_budget),
+                )
+                if sale_budget is not None
+                else None
+            )
 
             # urgency_days: 30% not specified
             if rng.rng.random() < 0.30:
@@ -157,7 +171,8 @@ def generate_inquiries(
                 "channel": chan,
                 "message_length": msg_len,
                 "requested_area_sqm": req_area,
-                "requested_budget_mxn": req_budget,
+                "requested_budget_mxn_rent_monthly": req_rent_budget,
+                "requested_budget_mxn_sale_total": req_sale_budget,
                 "urgency_days": urg,
                 "asked_visit": asked_visit,
                 "broker_response": br,

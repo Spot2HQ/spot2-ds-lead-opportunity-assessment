@@ -10,7 +10,8 @@ CANDIDATE = [t for t in ALL_TABLES if t != "outcomes"]
 
 EXPECTED_COLS = {
     "leads":["lead_id","user_type","company_size","industry","search_sector","search_modality",
-             "target_area_sqm","min_budget_mxn","max_budget_mxn","preferred_state","preferred_municipality",
+              "target_area_sqm","min_budget_mxn_rent_monthly","max_budget_mxn_rent_monthly",
+              "min_budget_mxn_sale_total","max_budget_mxn_sale_total","preferred_state","preferred_municipality",
              "preferred_corridor","source","prior_searches","prior_inquiries","has_converted_before",
              "lead_score_internal","created_at"],
     "spots":["spot_id","broker_id","sector_name","type_name","state","municipality","settlement",
@@ -21,7 +22,7 @@ EXPECTED_COLS = {
                        "floor_level","elevators","vertical_height_m","parking_spaces","building_status",
                        "floor_material","amenities"],
     "inquiries":["inquiry_id","lead_id","spot_id","inquiry_at","channel","message_length",
-                 "requested_area_sqm","requested_budget_mxn","urgency_days","asked_visit",
+                  "requested_area_sqm","requested_budget_mxn_rent_monthly","requested_budget_mxn_sale_total","urgency_days","asked_visit",
                  "broker_response","broker_response_hours"],
     "market_context":["state","municipality","corridor","sector","month","similar_available_spots",
                       "avg_price_sqm_mxn","recent_occupancy_rate","absorption_velocity_days",
@@ -32,7 +33,8 @@ EXPECTED_COLS = {
                 "spot_available_for_lead","opportunity_label","lead_quality_true"],
 }
 
-MISS_SPEC = {"leads":{"company_size":0.05,"industry":0.03,"preferred_corridor":0.08,"min_budget_mxn":0.04},
+MISS_SPEC = {"leads":{"company_size":0.05,"industry":0.03,"preferred_corridor":0.08,
+                       "min_budget_mxn_rent_monthly":0.33,"min_budget_mxn_sale_total":0.52},
              "spot_attributes":{"vertical_height_m":0.15,"floor_material":0.08,"charging_ports":0.20},
              "inquiries":{"urgency_days":0.30,"broker_response_hours":0.15}}
 MISS_TOL = 0.05

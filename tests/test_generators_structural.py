@@ -142,7 +142,8 @@ class TestColumnPresence:
         expected = {
             "lead_id", "user_type", "company_size", "industry",
             "search_sector", "search_modality", "target_area_sqm",
-            "min_budget_mxn", "max_budget_mxn", "preferred_state",
+            "min_budget_mxn_rent_monthly", "max_budget_mxn_rent_monthly",
+            "min_budget_mxn_sale_total", "max_budget_mxn_sale_total", "preferred_state",
             "preferred_municipality", "preferred_corridor", "source",
             "prior_searches", "prior_inquiries", "has_converted_before",
             "lead_score_internal", "created_at",
@@ -173,7 +174,8 @@ class TestColumnPresence:
     def test_inquiries_columns(self, inquiries_df: pl.DataFrame) -> None:
         expected = {
             "inquiry_id", "lead_id", "spot_id", "inquiry_at", "channel",
-            "message_length", "requested_area_sqm", "requested_budget_mxn",
+            "message_length", "requested_area_sqm",
+            "requested_budget_mxn_rent_monthly", "requested_budget_mxn_sale_total",
             "urgency_days", "asked_visit", "broker_response",
             "broker_response_hours",
         }

@@ -136,25 +136,33 @@ def generate_spots(
         sec = _SECTOR_MAP[s]
         area_vals.append(round(dist_area_sqm(sec, rng), 1))
 
-    # --- Prices ---
-    rent_prices: list[float] = []
-    sale_prices: list[float] = []
-    for s in sector_names:
-        sec = _SECTOR_MAP[s]
-        rp = dist_price_sqm(sec, rng)
-        rent_prices.append(round(rp, 2))
-        sp = rp * 180 * rng.rng.uniform(0.8, 1.2)
-        sale_prices.append(round(sp, 2))
-
-    area_arr = np.array(area_vals)
-    rent_arr = np.array(rent_prices)
-    sale_arr = np.array(sale_prices)
-    total_rent = (area_arr * rent_arr).round(2)
-    total_sale = (area_arr * sale_arr).round(2)
-    maintenance = (total_rent * rng.rng.uniform(0.05, 0.15, size=n)).round(2)
-
-    # --- Modality ---
     modality = _pick_weighted(rng, _MODALITIES, _MODALITY_WEIGHTS, n)
+    rent_prices: list[float | None] = []
+    sale_prices: list[float | None] = []
+    total_rent: list[float | None] = []
+    total_sale: list[float | None] = []
+    maintenance: list[float | None] = []
+    for s, area, listing_modality in zip(sector_names, area_vals, modality):
+        sec = _SECTOR_MAP[s]
+        rent_price = round(dist_price_sqm(sec, rng), 2)
+        sale_price = round(rent_price * 180 * rng.rng.uniform(0.8, 1.2), 2)
+
+        if listing_modality in {"rent", "both"}:
+            rent_total = round(area * rent_price, 2)
+            rent_prices.append(rent_price)
+            total_rent.append(rent_total)
+            maintenance.append(round(rent_total * rng.rng.uniform(0.05, 0.15), 2))
+        else:
+            rent_prices.append(None)
+            total_rent.append(None)
+            maintenance.append(None)
+
+        if listing_modality in {"sale", "both"}:
+            sale_prices.append(sale_price)
+            total_sale.append(round(area * sale_price, 2))
+        else:
+            sale_prices.append(None)
+            total_sale.append(None)
 
     # --- Days on market ---
     dom_vals: list[int] = []
@@ -215,9 +223,9 @@ def generate_spots(
         "area_sqm": area_vals,
         "price_sqm_mxn_rent": rent_prices,
         "price_sqm_mxn_sale": sale_prices,
-        "price_total_mxn_rent": total_rent.tolist(),
-        "price_total_mxn_sale": total_sale.tolist(),
-        "maintenance_cost_mxn": maintenance.tolist(),
+        "price_total_mxn_rent": total_rent,
+        "price_total_mxn_sale": total_sale,
+        "maintenance_cost_mxn": maintenance,
         "modality": modality,
         "days_on_market": dom_vals,
         "total_inquiries": total_inquiries.tolist(),

@@ -80,7 +80,9 @@ def generate_market_context(
     spot_prices: dict[tuple[str, str], list[float]] = {}
     for row in spots_df.iter_rows(named=True):
         key = (row["corridor"], row["sector_name"])
-        spot_prices.setdefault(key, []).append(float(row["price_sqm_mxn_rent"]))
+        rent_price = row["price_sqm_mxn_rent"]
+        if rent_price is not None:
+            spot_prices.setdefault(key, []).append(float(rent_price))
 
     price_median: dict[tuple[str, str], float] = {
         k: float(np.median(v)) for k, v in spot_prices.items() if v
