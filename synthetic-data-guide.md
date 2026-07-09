@@ -40,8 +40,10 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 | `search_sector` | string | Sector de interes | `Industrial` 25%, `Office` 30%, `Retail` 30%, `Land` 15% |
 | `search_modality` | string | Modalidad de interes | `rent` 50%, `sale` 30%, `both` 20% |
 | `target_area_sqm` | float | Area objetivo en m2 | Distribucion log-normal, media 500, std 400, truncada [30, 10000] |
-| `min_budget_mxn` | float | Presupuesto minimo (MXN total) | `target_area_sqm * price_per_sqm * uniform(0.7, 0.9)` |
-| `max_budget_mxn` | float | Presupuesto maximo (MXN total) | `min_budget_mxn * uniform(1.1, 1.5)`. Siempre >= min_budget |
+| `min_budget_mxn_rent_monthly` | float | Presupuesto minimo de renta mensual (MXN) | target_area_sqm x sector_rent_mean x uniform(0.7, 0.9). NULL para leads de venta. |
+| `max_budget_mxn_rent_monthly` | float | Presupuesto maximo de renta mensual (MXN) | min_budget_rent x uniform(1.1, 1.5). Siempre >= min. NULL para leads de venta. |
+| `min_budget_mxn_sale_total` | float | Presupuesto minimo de compra total (MXN) | target_area_sqm x sector_rent_mean x 180 x uniform(0.7, 0.9). NULL para leads de renta. |
+| `max_budget_mxn_sale_total` | float | Presupuesto maximo de compra total (MXN) | min_budget_sale x uniform(1.1, 1.5). Siempre >= min. NULL para leads de renta. |
 | `preferred_state` | string | Estado preferido | 5 estados: `CDMX`, `Mexico`, `NuevoLeon`, `Jalisco`, `Queretaro`. 40% concentrado en CDMX y Mexico. |
 | `preferred_municipality` | string | Municipio preferido | ~20 municipios, distribuidos proporcionalmente al PIB industrial de cada zona |
 | `preferred_corridor` | string | Corredor industrial/comercial | `industrial_vallejo`, `santa_fe`, `insurgentes`, `periferico`, `toreo`, `aeropuerto`, `ecatepec`, `tlaquepaque`, `apodaca`, `escobedo`, `queretaro_centro`, etc. |
@@ -51,6 +53,8 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 | `has_converted_before` | bool | Ha convertido en el pasado? | 10% true. Correlacionado con prior_inquiries y prior_searches. |
 | `lead_score_internal` | float | Score interno de calidad del lead | **Columna leakage.** Correlacionada artificialmente con `converted`. No deberia estar en train. |
 | `created_at` | datetime | Fecha de creacion del lead | Distribucion uniforme en el periodo. Mayor volumen en dias laborables. |
+
+Para `search_modality = both`, los cuatro campos de presupuesto estan poblados. Los presupuestos de renta son directamente comparables con `spots.price_total_mxn_rent`; los de compra, con `spots.price_total_mxn_sale`.
 
 ### Leakage traps en leads
 
@@ -62,12 +66,14 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 - `company_size`: 5% faltante (MCAR)
 - `industry`: 3% faltante
 - `preferred_corridor`: 8% faltante (leads sin corredor especifico)
-- `min_budget_mxn`: 4% faltante (MCAR)
+- `min_budget_mxn_rent_monthly`: 4% faltante entre leads de renta/both (MCAR).
+- `min_budget_mxn_sale_total`: 4% faltante entre leads de venta/both (MCAR).
 
 ### Outliers
 
 - `target_area_sqm`: 2% con valores > 5,000 m2 (grandes corporativos o naves industriales).
-- `max_budget_mxn`: 3% con valores extremadamente altos (> 3x IQR), correspondientes a proyectos institucionales.
+- `max_budget_mxn_rent_monthly`: 3% con valores > 3x IQR (proyectos institucionales de renta).
+- `max_budget_mxn_sale_total`: 3% con valores > 3x IQR (proyectos institucionales de compra).
 - `prior_inquiries`: 3% con valores > 50 (posibles bots/scrapers).
 
 ---
@@ -75,6 +81,15 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 ## Tabla: spots
 
 **Filas:** ~2,000-4,000. **Periodo:** Catalogo actual (puede incluir inmuebles inactivos o vendidos).
+
+`distributions.py` define `_PRICE_PER_SQM` como renta mensual por metro cuadrado: `# Monthly rent price per square meter in MXN (2025-2026 market ranges).` La tupla es `(media, desviacion_estandar, minimo, maximo)`.
+
+| Sector | Media | Desviacion estandar | Minimo | Maximo |
+|--------|-------|---------------------|--------|--------|
+| Industrial | 150 | 66 | 94 | 563 |
+| Office | 350 | 112 | 112 | 980 |
+| Retail | 300 | 117 | 100 | 833 |
+| Land | 50 | 30 | 15 | 200 |
 
 | Columna | Tipo | Descripcion | Detalles de generacion |
 |---------|------|-------------|------------------------|
@@ -92,12 +107,12 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 | `title` | string | Titulo del inmueble | Plantilla: `"{type_name} {sector} en {corridor}, {municipality}"` |
 | `description` | string | Descripcion del inmueble | Texto sintetico de 1-3 frases sobre caracteristicas |
 | `area_sqm` | float | Area total en m2 | Distribucion log-normal, media 350, std 300, truncada [20, 8000]. Menor para Office, mayor para Industrial/Land. |
-| `price_sqm_mxn_rent` | float | Precio de renta por m2/mes (MXN) | Distribucion por sector: Office media 350, Retail media 300, Industrial media 150, Land media 50. Std proporcional. |
-| `price_sqm_mxn_sale` | float | Precio de venta por m2 (MXN) | `price_sqm_rent * 180 * uniform(0.8, 1.2)` (capitalizacion aproximada) |
-| `price_total_mxn_rent` | float | Renta total mensual (MXN) | `area_sqm * price_sqm_mxn_rent` |
-| `price_total_mxn_sale` | float | Precio de venta total (MXN) | `area_sqm * price_sqm_mxn_sale` |
-| `maintenance_cost_mxn` | float | Costo de mantenimiento mensual (MXN) | `price_total_rent * uniform(0.05, 0.15)` |
-| `modality` | string | Modalidad disponible | `rent` 40%, `sale` 25%, `both` 35% |
+| `price_sqm_mxn_rent` | float | Precio de renta mensual por m2 (MXN) | Poblado para `rent`/`both`; NULL para `sale`. |
+| `price_sqm_mxn_sale` | float | Precio de venta por m2 (MXN) | `price_sqm_mxn_rent x 180 x random(0.8, 1.2)`. Poblado para `sale`/`both`; NULL para `rent`. |
+| `price_total_mxn_rent` | float | Renta total mensual (MXN) | `area_sqm x price_sqm_mxn_rent`. Poblado para `rent`/`both`; NULL para `sale`. |
+| `price_total_mxn_sale` | float | Precio de venta total (MXN) | `area_sqm x price_sqm_mxn_sale`. Poblado para `sale`/`both`; NULL para `rent`. |
+| `maintenance_cost_mxn` | float | Costo de mantenimiento mensual (MXN) | `price_total_mxn_rent x uniform(0.05, 0.15)`. Poblado para `rent`/`both`; NULL para `sale`. |
+| `modality` | string | Modalidad disponible | `rent` 40%, `sale` 25%, `both` 35%. Determina la nulabilidad de los precios y del mantenimiento: renta/mantenimiento para `rent`/`both`; venta para `sale`/`both`. |
 | `days_on_market` | int | Dias publicado en la plataforma | Distribucion exponencial, media 90 dias. Max 730. |
 | `total_inquiries` | int | Total de inquiries recibidos | Correlacionado con days_on_market y sector caliente. |
 | `total_views` | int | Vistas totales del inmueble | `total_inquiries * uniform(10, 30)` |
@@ -147,12 +162,13 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 |---------|------|-------------|------------------------|
 | `inquiry_id` | int (PK) | ID unico | Entero secuencial |
 | `lead_id` | int (FK) | Referencia a leads | Cada lead tiene 1-8 inquiries |
-| `spot_id` | int (FK) | Referencia al inmueble consultado | 60% a inmuebles en el mismo corredor/sector, 40% a otros |
+| `spot_id` | int (FK) | Referencia al inmueble consultado | Seleccion compatible con modalidad: leads `rent` eligen spots `rent`/`both`; leads `sale`, spots `sale`/`both`; leads `both` pueden elegir cualquier spot. Dentro del pool, 60% mismo corredor/sector y 40% otros. |
 | `inquiry_at` | datetime | Fecha del inquiry | Correlacionado con `leads.created_at`, dentro de 1-14 dias post-lead |
 | `channel` | string | Canal del inquiry | `web` 30%, `app` 25%, `whatsapp` 25%, `email` 15%, `phone` 5% |
 | `message_length` | int | Longitud del mensaje del lead | Distribucion log-normal media 200 caracteres |
 | `requested_area_sqm` | float | Area solicitada por el lead | Consistente con `leads.target_area_sqm`. Ruido gaussiano std 15%. |
-| `requested_budget_mxn` | float | Presupuesto mencionado en el inquiry | Consistente con `leads.max_budget_mxn`. |
+| `requested_budget_mxn_rent_monthly` | float | Presupuesto de renta mensual solicitado (MXN) | max(0, max_budget_mxn_rent_monthly x uniform(0.7, 1.1)), acotado al maximo. NULL si el lead no busca renta. |
+| `requested_budget_mxn_sale_total` | float | Presupuesto de compra total solicitado (MXN) | max(0, max_budget_mxn_sale_total x uniform(0.7, 1.1)), acotado al maximo. NULL si el lead no busca compra. |
 | `urgency_days` | int | Urgencia expresada en dias | 30% sin especificar. Del resto: 20% < 30 dias, 40% 30-90, 40% >90. |
 | `asked_visit` | bool | Solicito visita al inmueble? | 25% true. Correlacionado positivamente con conversion. |
 | `broker_response` | string | Respuesta del broker | `accepted` 45%, `rejected` 15%, `no_response` 20%, `scheduled_visit` 20% |
@@ -179,7 +195,7 @@ leads       +---------+  inquiries   +---------+  availability_snapshot
 | `sector` | string | Sector | `Industrial`, `Office`, `Retail`, `Land` |
 | `month` | date | Primer dia del mes | Mensual |
 | `similar_available_spots` | int | Inmuebles similares disponibles en la zona | Dinamico: 10-200. Correlacionado negativamente con demanda. |
-| `avg_price_sqm_mxn` | float | Precio promedio por m2 por sector | Con tendencia: +3% anual. Con estacionalidad: picos en Q1. |
+| `avg_price_sqm_mxn` | float | Precio promedio mensual de renta por m2 por sector | Se deriva solo de inventario rentable (`rent`/`both`); los spots solo de venta se excluyen. Con tendencia: +3% anual. Con estacionalidad: picos en Q1. |
 | `recent_occupancy_rate` | float | Tasa de ocupacion reciente (0-1) | Office: 0.75-0.90, Industrial: 0.80-0.95, Retail: 0.70-0.85, Land: 0.50-0.70 |
 | `absorption_velocity_days` | float | Velocidad de absorcion (dias para ocupar) | Office: 60-180, Industrial: 90-240, Retail: 45-150, Land: 120-365 |
 | `recent_inquiry_volume` | int | Volumen de inquiries en el periodo | Normalizado por mes/sector. 50-500. |
@@ -238,7 +254,7 @@ P(conversion) = sigmoid(
     0.7 * (source == referral) +
     0.5 * (search_sector == Office) +
     0.4 * (user_type == tenant_direct) +
-    0.3 * (max_budget_mxn > median_budget) +
+    0.3 * (max(rent_affordability, sale_affordability) > median_affordability) +
     0.4 * (1 < prior_inquiries <= 5) +
     0.2 * (broker_response == accepted) +
     0.5 * (asked_visit == true) -
@@ -248,6 +264,15 @@ P(conversion) = sigmoid(
     + noise N(0, 0.3)
 )
 ```
+
+El componente de presupuesto usa asequibilidad normalizada para comparar renta y compra en la misma escala:
+
+```
+rent_affordability = max_budget_rent / (area x sector_rent_reference)
+sale_affordability = max_budget_sale / (area x sector_sale_reference)
+```
+
+La senal usa `max(rent_affordability, sale_affordability) > median_affordability`. Para una modalidad no aplicable, su presupuesto no contribuye a la comparacion.
 
 `converted_to_closure` se genera como subconjunto de `converted_to_visit` con probabilidad adicional del 45%.
 
@@ -282,7 +307,8 @@ Este split fuerza al candidato a validar temporalmente, no solo con muestreo ale
 | leads.company_size | 5% | MCAR |
 | leads.industry | 3% | MCAR |
 | leads.preferred_corridor | 8% | MCAR |
-| leads.min_budget_mxn | 4% | MCAR |
+| leads.min_budget_mxn_rent_monthly | 4% entre leads de renta/both | MCAR |
+| leads.min_budget_mxn_sale_total | 4% entre leads de venta/both | MCAR |
 | spot_attributes.vertical_height_m | 15% | MAR (terrenos no tienen altura) |
 | spot_attributes.floor_material | 8% | MCAR |
 | spot_attributes.charging_ports | 20% | MAR (inmuebles antiguos no reportan) |
@@ -292,7 +318,8 @@ Este split fuerza al candidato a validar temporalmente, no solo con muestreo ale
 ### Outliers esperados
 
 - `leads.target_area_sqm` > 5000: grandes corporativos o naves industriales. 2% de los datos.
-- `leads.max_budget_mxn` > 3x IQR: proyectos institucionales. 3% de los datos.
+- `leads.max_budget_mxn_rent_monthly` > 3x IQR: proyectos institucionales de renta. 3% de los datos.
+- `leads.max_budget_mxn_sale_total` > 3x IQR: proyectos institucionales de compra. 3% de los datos.
 - `spots.area_sqm` < 30: subspaces muy pequenos. 1% de los datos.
 - `spots.price_sqm_mxn_rent` por sector: > 3x la media del mismo sector. 2%.
 
