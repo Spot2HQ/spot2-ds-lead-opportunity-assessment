@@ -243,11 +243,12 @@ class TestLeads:
         assert sale["max_budget_mxn_sale_total"].null_count() < sale.height
         assert sale["min_budget_mxn_rent_monthly"].null_count() == sale.height
 
-    def test_both_lead_has_all_budgets(self, leads_df: pl.DataFrame) -> None:
+    def test_both_lead_has_applicable_budget_families(self, leads_df: pl.DataFrame) -> None:
         both = leads_df.filter(pl.col("search_modality") == "both")
         assert both.height > 0
-        assert both["min_budget_mxn_rent_monthly"].null_count() == 0
-        assert both["min_budget_mxn_sale_total"].null_count() == 0
+        for column in ("min_budget_mxn_rent_monthly", "min_budget_mxn_sale_total"):
+            null_rate = both[column].null_count() / both.height
+            assert 0.02 <= null_rate <= 0.06
 
     def test_inquiry_modality_compatibility(
         self, inquiries_df: pl.DataFrame, leads_df: pl.DataFrame, spots_df: pl.DataFrame,

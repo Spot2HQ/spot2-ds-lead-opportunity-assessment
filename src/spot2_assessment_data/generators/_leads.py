@@ -259,8 +259,8 @@ def generate_leads(
     df = _apply_mcar(df, "company_size", 0.05, rng)
     df = _apply_mcar(df, "industry", 0.03, rng)
     df = _apply_mcar(df, "preferred_corridor", 0.08, rng)
-    df = _apply_mcar(df, "min_budget_mxn_rent_monthly", 0.04, rng, modalities == "rent")
-    df = _apply_mcar(df, "min_budget_mxn_sale_total", 0.04, rng, modalities == "sale")
+    df = _apply_mcar(df, "min_budget_mxn_rent_monthly", 0.04, rng, rent_applicable)
+    df = _apply_mcar(df, "min_budget_mxn_sale_total", 0.04, rng, sale_applicable)
 
     # --- Correct dtypes ---
     df = df.with_columns([
