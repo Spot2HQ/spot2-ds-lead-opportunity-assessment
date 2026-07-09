@@ -1,36 +1,36 @@
-# Data Scientist Lead — Technical Assessment
+# Data Scientist Lead — Evaluación Técnica
 
-Thanks for taking on this challenge. We have designed it to reflect the kind of problems you would solve day to day at Spot2.
+Gracias por aceptar este reto. Lo diseñamos para reflejar el tipo de problemas que resolverías día a día en Spot2.
 
-## The challenge
+## El reto
 
-You will build a **Lead Opportunity Score** for a commercial real estate marketplace. The score combines two questions:
+Construirás un **Lead Opportunity Score** para un marketplace de bienes raíces comerciales. El score combina dos preguntas:
 
-1. **Lead Quality**: how likely is this lead to convert?
-2. **Inventory Availability**: can our current inventory meet their needs?
+1. **Lead Quality**: ¿qué tan probable es que este lead convierta?
+2. **Inventory Availability**: ¿puede nuestro inventario actual atender sus necesidades?
 
-Your final score gives us a single number for each lead: **Lead Opportunity Score = Lead Quality x Inventory Availability**.
+El resultado es un número único por lead: **Lead Opportunity Score = Lead Quality × Inventory Availability**.
 
-When inventory is tight, your system should also suggest viable alternatives properties in the same sector and corridor.
+Cuando el inventario está limitado, tu sistema también debe sugerir inmuebles alternativos viables en el mismo sector y corredor.
 
-## The data
+## Los datos
 
-You get 6 relational tables. Each is available in both CSV and Parquet format under `data/candidate/csv/` and `data/candidate/parquet/`.
+Recibes 6 tablas relacionales. Cada una está disponible en formato CSV y Parquet dentro de `data/candidate/csv/` y `data/candidate/parquet/`.
 
-| Table | Rows (approx) | What it contains |
-|-------|---------------|------------------|
-| `leads` | ~5,000 | Lead data: user type, target sector, budget, preferred location |
-| `spots` | ~2,000–4,000 | Property catalog: sector, price per m2, area, location, modality |
-| `spot_attributes` | ~2,000–4,000 | Property features: lighting, parking spaces, height, amenities |
-| `inquiries` | ~15,000–25,000 | Lead-property contact history: channel, requested area, urgency |
-| `market_context` | ~500 | Market context by state/municipality/corridor/sector/month |
-| `availability_snapshot` | ~20,000–40,000 | Availability status per property at different points in time |
+| Tabla | Filas (aprox) | Contenido |
+|-------|---------------|-----------|
+| `leads` | ~5,000 | Datos del lead: tipo de usuario, sector objetivo, presupuesto, ubicación preferida |
+| `spots` | ~2,000–4,000 | Catálogo de inmuebles: sector, precio por m², área, ubicación, modalidad |
+| `spot_attributes` | ~2,000–4,000 | Características del inmueble: iluminación, cajones de estacionamiento, altura, amenidades |
+| `inquiries` | ~15,000–25,000 | Historial de contacto lead-inmueble: canal, área solicitada, urgencia |
+| `market_context` | ~500 | Contexto de mercado por estado/municipio/corredor/sector/mes |
+| `availability_snapshot` | ~20,000–40,000 | Estado de disponibilidad por inmueble en distintos momentos |
 
-> Note: some labels used for evaluation (such as conversion outcomes) are intentionally withheld; your models should predict or infer the relevant target variables.
+> Nota: algunas etiquetas usadas para evaluación (como los resultados de conversión) se omiten intencionalmente; tus modelos deben predecir o inferir las variables objetivo relevantes.
 
-### Loading the data
+### Cargar los datos
 
-Both formats are provided so you can choose what works best for your workflow.
+Ambos formatos están incluidos para que elijas el que mejor se adapte a tu flujo de trabajo.
 
 **Pandas**
 
@@ -41,7 +41,7 @@ import pandas as pd
 leads = pd.read_csv("data/candidate/csv/leads.csv")
 spots = pd.read_csv("data/candidate/csv/spots.csv")
 
-# Parquet (faster, smaller)
+# Parquet (más rápido, más compacto)
 leads = pd.read_parquet("data/candidate/parquet/leads.parquet")
 spots = pd.read_parquet("data/candidate/parquet/spots.parquet")
 ```
@@ -55,32 +55,32 @@ import polars as pl
 leads = pl.read_csv("data/candidate/csv/leads.csv")
 spots = pl.read_csv("data/candidate/csv/spots.csv")
 
-# Parquet (faster, smaller)
+# Parquet (más rápido, más compacto)
 leads = pl.read_parquet("data/candidate/parquet/leads.parquet")
 spots = pl.read_parquet("data/candidate/parquet/spots.parquet")
 ```
 
-### Data quality notes
+### Calidad de los datos
 
-Some columns have missing values and outliers. This is expected in real-world data. Decide how to handle them and justify your choices. No ground truth answer sheet exists for these decisions.
+Algunas columnas tienen valores faltantes y outliers. Esto es esperable en datos del mundo real. Decide cómo manejarlos y justifica tus decisiones. No existe una hoja de respuestas correcta para estas decisiones.
 
-## What to deliver
+## Entregables
 
-1. **Notebook** (.ipynb or rendered HTML) with your full reproducible analysis.
-2. **One-pager** (PDF) executive summary for Product and C-Level audiences.
-3. **Slides** (PDF, 5–8 slides) with key findings for a 15-minute presentation.
-4. **AI prompt** you used, included as a text block in the notebook.
+1. **Notebook** (.ipynb o HTML renderizado) con tu análisis completo y reproducible.
+2. **One-pager** (PDF) con resumen ejecutivo para audiencias de Producto y C-Level.
+3. **Slides** (PDF, 5–8 diapositivas) con hallazgos clave para una presentación de 15 minutos.
+4. **Prompt de IA** que usaste, incluido como bloque de texto en el notebook.
 
-## Time
+## Tiempo
 
-We expect this to take about 6–8 hours. We do not expect production-ready infrastructure. We do expect a solid analysis, clearly communicated, with a path to scale.
+Esperamos que tome entre 6 y 8 horas. No esperamos infraestructura lista para producción. Sí esperamos un análisis sólido, bien comunicado y con visión de escalabilidad.
 
 ## Tips
 
-- The data is synthetic, designed so you can find realistic patterns. Do not look for perfect relationships.
-- There are missing values and outliers deliberately placed. Your decisions on how to handle them are part of the evaluation.
-- Some columns are leakage traps. Detecting them is part of the exercise.
-- The product question matters as much as the model. Do not leave it for last.
-- Use an LLM. Using AI is an explicit part of the evaluation.
+- Los datos son sintéticos, diseñados para que encuentres patrones realistas. No busques relaciones perfectas.
+- Hay valores faltantes y outliers colocados deliberadamente. Tus decisiones sobre cómo manejarlos son parte de la evaluación.
+- Algunas columnas son trampas de leakage. Detectarlas es parte del ejercicio.
+- La pregunta de producto importa tanto como el modelo. No la dejes para el final.
+- Usa un LLM. El uso de IA es parte explícita de la evaluación.
 
-Good luck, and have fun with it.
+Mucha suerte, y diviértete con el reto.
