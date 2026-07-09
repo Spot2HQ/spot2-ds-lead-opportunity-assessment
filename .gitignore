@@ -1,0 +1,36 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Secrets and environment
+.env*
+*.key
+credentials*
+*.pem
+
+# Generated data — scoped to specific directories only
+data/candidate/**/*.csv
+data/candidate/**/*.parquet
+data/evaluation/**/*.csv
+data/evaluation/**/*.parquet
+data/internal/**
+dist/*.zip

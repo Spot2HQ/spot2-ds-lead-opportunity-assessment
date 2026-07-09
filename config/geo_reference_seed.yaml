@@ -1,0 +1,147 @@
+# Safe synthetic fallback catalog — no production PII, real addresses, or company names.
+# All data derived from public geographic knowledge (state capitals, major municipalities, known commercial corridors).
+
+locations:
+  - state: "CDMX"
+    municipality: "Miguel Hidalgo"
+    settlement: "Polanco"
+    region: "centro"
+    corridor: "polanco"
+    centroid_lat: 19.4336
+    centroid_lon: -99.1908
+
+  - state: "CDMX"
+    municipality: "Cuauhtémoc"
+    settlement: "Roma Norte"
+    region: "centro"
+    corridor: "roma-condesa"
+    centroid_lat: 19.4194
+    centroid_lon: -99.1611
+
+  - state: "CDMX"
+    municipality: "Benito Juárez"
+    settlement: "Del Valle"
+    region: "centro"
+    corridor: "del-valle-narvarte"
+    centroid_lat: 19.3844
+    centroid_lon: -99.1700
+
+  - state: "Jalisco"
+    municipality: "Guadalajara"
+    settlement: "Colonia Americana"
+    region: "occidente"
+    corridor: "americana-chapultepec"
+    centroid_lat: 20.6736
+    centroid_lon: -103.3750
+
+  - state: "Jalisco"
+    municipality: "Zapopan"
+    settlement: "Puerta de Hierro"
+    region: "occidente"
+    corridor: "andares-puerta-hierro"
+    centroid_lat: 20.7100
+    centroid_lon: -103.4100
+
+  - state: "Nuevo León"
+    municipality: "Monterrey"
+    settlement: "Centro"
+    region: "noreste"
+    corridor: "macroplaza"
+    centroid_lat: 25.6751
+    centroid_lon: -100.3185
+
+  - state: "Nuevo León"
+    municipality: "San Pedro Garza García"
+    settlement: "Del Valle"
+    region: "noreste"
+    corridor: "vasconcelos-calzada"
+    centroid_lat: 25.6583
+    centroid_lon: -100.3636
+
+  - state: "Querétaro"
+    municipality: "Querétaro"
+    settlement: "Juriquilla"
+    region: "bajío"
+    corridor: "juriquilla-juncos"
+    centroid_lat: 20.7122
+    centroid_lon: -100.4514
+
+  - state: "Querétaro"
+    municipality: "Querétaro"
+    settlement: "Centro Histórico"
+    region: "bajío"
+    corridor: "centro-queretaro"
+    centroid_lat: 20.5888
+    centroid_lon: -100.3899
+
+  - state: "Guanajuato"
+    municipality: "León"
+    settlement: "Zona Centro"
+    region: "bajío"
+    corridor: "centro-leon"
+    centroid_lat: 21.1217
+    centroid_lon: -101.6833
+
+  - state: "Puebla"
+    municipality: "Puebla"
+    settlement: "Angelópolis"
+    region: "centro-oriente"
+    corridor: "angelopolis-lomas"
+    centroid_lat: 19.0336
+    centroid_lon: -98.2417
+
+  - state: "Estado de México"
+    municipality: "Naucalpan de Juárez"
+    settlement: "Lomas Verdes"
+    region: "centro"
+    corridor: "lomas-verdes-satelite"
+    centroid_lat: 19.5056
+    centroid_lon: -99.2719
+
+  - state: "Estado de México"
+    municipality: "Toluca"
+    settlement: "Metepec"
+    region: "centro"
+    corridor: "metepec-toluca"
+    centroid_lat: 19.2583
+    centroid_lon: -99.6008
+
+  - state: "Yucatán"
+    municipality: "Mérida"
+    settlement: "Centro"
+    region: "sureste"
+    corridor: "paseo-montejo"
+    centroid_lat: 20.9756
+    centroid_lon: -89.6167
+
+  - state: "Baja California"
+    municipality: "Tijuana"
+    settlement: "Zona Río"
+    region: "noroeste"
+    corridor: "zona-rio-aguacaliente"
+    centroid_lat: 32.5149
+    centroid_lon: -117.0382
+
+  - state: "Sonora"
+    municipality: "Hermosillo"
+    settlement: "Centenario"
+    region: "noroeste"
+    corridor: "centenario-colosio"
+    centroid_lat: 29.0722
+    centroid_lon: -110.9553
+
+  - state: "San Luis Potosí"
+    municipality: "San Luis Potosí"
+    settlement: "Lomas"
+    region: "centro-norte"
+    corridor: "lomas-carranza"
+    centroid_lat: 22.1498
+    centroid_lon: -100.9789
+
+  - state: "Chihuahua"
+    municipality: "Chihuahua"
+    settlement: "Centro"
+    region: "norte"
+    corridor: "centro-chihuahua"
+    centroid_lat: 28.6353
+    centroid_lon: -106.0889

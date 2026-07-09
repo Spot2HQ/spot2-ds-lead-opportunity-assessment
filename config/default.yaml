@@ -1,0 +1,32 @@
+seed: 42
+temporal_range:
+  start: "2025-01-01"
+  end: "2026-06-30"
+row_counts:
+  leads: 5000
+  spots: 3000
+  spot_attributes: 3000
+  inquiries: 20000
+  market_context: 500
+  availability_snapshot: 30000
+  outcomes: 5000
+row_count_tolerances:
+  fixed:
+    tables: [leads, spots, spot_attributes, availability_snapshot, outcomes]
+    pct: 5
+  generated:
+    tables: [inquiries, market_context]
+    pct: 20
+target_rates:
+  converted_to_visit: {mean: 0.22, tolerance: 0.04}
+  converted_to_closure: {mean: 0.10, tolerance: 0.03}
+  spot_available_for_lead: {min: 0.55, max: 0.75}
+geo_jitter:
+  max_km: 2.5
+  rule: "must remain in same location tuple"
+output_roots:
+  candidate_csv: data/candidate/csv
+  candidate_parquet: data/candidate/parquet
+  evaluation_csv: data/evaluation/csv
+  evaluation_parquet: data/evaluation/parquet
+  internal: data/internal

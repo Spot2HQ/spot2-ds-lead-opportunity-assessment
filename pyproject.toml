@@ -1,0 +1,28 @@
+[project]
+name = "spot2-assessment-data"
+version = "0.1.0"
+description = "Synthetic data generation for Spot2 lead opportunity assessment"
+requires-python = ">=3.12"
+dependencies = [
+    "polars>=1.0",
+    "pyarrow>=17.0",
+    "numpy>=1.26",
+    "pydantic>=2.0",
+    "pytest>=8.0",
+    "clickhouse-connect>=0.7",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+ml = ["scikit-learn>=1.5"]
+
+[dependency-groups]
+dev = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
