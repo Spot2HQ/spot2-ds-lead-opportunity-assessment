@@ -17,12 +17,12 @@ from spot2_assessment_data.config import AssessmentConfig
 from spot2_assessment_data.constants import Sector
 from spot2_assessment_data.rng import SeedRng
 
-# Price per square meter in MXN (2025-2026 market ranges).
+# Monthly rent price per square meter in MXN (2025-2026 market ranges).
 _PRICE_PER_SQM: Final[dict[Sector, tuple[float, float, float, float]]] = {
-    Sector.INDUSTRIAL: (8_000, 3_500, 5_000, 30_000),
-    Sector.OFFICE: (25_000, 8_000, 8_000, 70_000),
-    Sector.RETAIL: (18_000, 7_000, 6_000, 50_000),
-    Sector.LAND: (5_000, 3_000, 1_500, 20_000),
+    Sector.INDUSTRIAL: (150, 66, 94, 563),
+    Sector.OFFICE: (350, 112, 112, 980),
+    Sector.RETAIL: (300, 117, 100, 833),
+    Sector.LAND: (50, 30, 15, 200),
 }
 
 # Area in square meters.

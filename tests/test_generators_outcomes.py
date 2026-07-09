@@ -139,6 +139,58 @@ class TestSpots:
         vals = set(spots_df["modality"].to_list())
         assert vals.issubset(valid)
 
+    def test_modality_rent_nulls_sale_fields(self, spots_df: pl.DataFrame):
+        """rent-only spots must have null sale fields."""
+        rent = spots_df.filter(pl.col("modality") == "rent")
+        assert rent.height > 0, "No rent-only spots found"
+        assert rent["price_sqm_mxn_sale"].null_count() == rent.height
+        assert rent["price_total_mxn_sale"].null_count() == rent.height
+
+    def test_modality_sale_nulls_rent_fields(self, spots_df: pl.DataFrame):
+        """sale-only spots must have null rent and maintenance fields."""
+        sale = spots_df.filter(pl.col("modality") == "sale")
+        assert sale.height > 0, "No sale-only spots found"
+        assert sale["price_sqm_mxn_rent"].null_count() == sale.height
+        assert sale["price_total_mxn_rent"].null_count() == sale.height
+        assert sale["maintenance_cost_mxn"].null_count() == sale.height
+
+    def test_modality_both_has_all_price_fields(self, spots_df: pl.DataFrame):
+        """both-modality spots must have all price families and maintenance."""
+        both = spots_df.filter(pl.col("modality") == "both")
+        assert both.height > 0, "No both-modality spots found"
+        assert both["price_sqm_mxn_rent"].null_count() == 0
+        assert both["price_sqm_mxn_sale"].null_count() == 0
+        assert both["price_total_mxn_rent"].null_count() == 0
+        assert both["price_total_mxn_sale"].null_count() == 0
+        assert both["maintenance_cost_mxn"].null_count() == 0
+
+    def test_price_total_equals_area_times_unit(self, spots_df: pl.DataFrame):
+        """Total price = area_sqm × unit price for non-null rows."""
+        rent_rows = spots_df.filter(pl.col("modality").is_in(["rent", "both"]))
+        if rent_rows.height > 0:
+            diff = (rent_rows["price_total_mxn_rent"] - rent_rows["area_sqm"] * rent_rows["price_sqm_mxn_rent"]).abs()
+            assert diff.max() < 1.0, f"Rent total mismatch: max diff {diff.max():.2f}"
+            maintenance_rate = rent_rows["maintenance_cost_mxn"] / rent_rows["price_total_mxn_rent"]
+            assert maintenance_rate.min() >= 0.05
+            assert maintenance_rate.max() <= 0.15
+        sale_rows = spots_df.filter(pl.col("modality").is_in(["sale", "both"]))
+        if sale_rows.height > 0:
+            diff = (sale_rows["price_total_mxn_sale"] - sale_rows["area_sqm"] * sale_rows["price_sqm_mxn_sale"]).abs()
+            assert diff.max() < 1.0, f"Sale total mismatch: max diff {diff.max():.2f}"
+
+    def test_monthly_rent_scale(self, spots_df: pl.DataFrame):
+        """Median rent m² prices are near the approved monthly scale."""
+        rent = spots_df.filter(pl.col("price_sqm_mxn_rent").is_not_null())
+        if rent.height > 0:
+            medians = rent.group_by("sector_name").agg(pl.median("price_sqm_mxn_rent"))
+            for row in medians.iter_rows(named=True):
+                sec = row["sector_name"]
+                med = row["price_sqm_mxn_rent"]
+                if sec == "Industrial": assert 100 <= med <= 250, f"Industrial median {med}"
+                elif sec == "Office": assert 250 <= med <= 500, f"Office median {med}"
+                elif sec == "Retail": assert 200 <= med <= 450, f"Retail median {med}"
+                elif sec == "Land": assert 25 <= med <= 100, f"Land median {med}"
+
     def test_sector_name_values(self, spots_df: pl.DataFrame) -> None:
         valid = {"Industrial", "Office", "Retail", "Land"}
         vals = set(spots_df["sector_name"].to_list())
@@ -177,6 +229,50 @@ class TestLeads:
         """lead_score_internal must exist and be a float column."""
         assert "lead_score_internal" in leads_df.columns
         assert leads_df["lead_score_internal"].dtype in (pl.Float64, pl.Float32)
+
+    def test_rent_lead_has_null_sale_budgets(self, leads_df: pl.DataFrame) -> None:
+        rent = leads_df.filter(pl.col("search_modality") == "rent")
+        assert rent.height > 0
+        assert rent["min_budget_mxn_rent_monthly"].null_count() < rent.height
+        assert rent["min_budget_mxn_sale_total"].null_count() == rent.height
+        assert rent["max_budget_mxn_sale_total"].null_count() == rent.height
+
+    def test_sale_lead_has_null_rent_budgets(self, leads_df: pl.DataFrame) -> None:
+        sale = leads_df.filter(pl.col("search_modality") == "sale")
+        assert sale.height > 0
+        assert sale["max_budget_mxn_sale_total"].null_count() < sale.height
+        assert sale["min_budget_mxn_rent_monthly"].null_count() == sale.height
+
+    def test_both_lead_has_all_budgets(self, leads_df: pl.DataFrame) -> None:
+        both = leads_df.filter(pl.col("search_modality") == "both")
+        assert both.height > 0
+        assert both["min_budget_mxn_rent_monthly"].null_count() == 0
+        assert both["min_budget_mxn_sale_total"].null_count() == 0
+
+    def test_inquiry_modality_compatibility(
+        self, inquiries_df: pl.DataFrame, leads_df: pl.DataFrame, spots_df: pl.DataFrame,
+    ) -> None:
+        lead_mod = dict(zip(leads_df["lead_id"].to_list(), leads_df["search_modality"].to_list()))
+        spot_mod = dict(zip(spots_df["spot_id"].to_list(), spots_df["modality"].to_list()))
+        for row in inquiries_df.iter_rows(named=True):
+            lead_modality = lead_mod.get(row["lead_id"])
+            spot_modality = spot_mod.get(row["spot_id"])
+            if lead_modality and spot_modality:
+                if lead_modality == "rent":
+                    assert spot_modality in ("rent", "both"), (
+                        f"Lead {lead_modality} incompatible with spot {spot_modality}"
+                    )
+                elif lead_modality == "sale":
+                    assert spot_modality in ("sale", "both"), (
+                        f"Lead {lead_modality} incompatible with spot {spot_modality}"
+                    )
+
+    def test_no_generic_budget_fields(
+        self, leads_df: pl.DataFrame, inquiries_df: pl.DataFrame,
+    ) -> None:
+        for col in ["min_budget_mxn", "max_budget_mxn", "requested_budget_mxn"]:
+            assert col not in leads_df.columns, f"Generic column {col} still in leads"
+            assert col not in inquiries_df.columns, f"Generic column {col} still in inquiries"
 
 
 # ======================================================================

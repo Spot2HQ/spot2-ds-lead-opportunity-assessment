@@ -155,9 +155,10 @@ class TestMissingness:
         rate = _null_rate(leads_df, "preferred_corridor")
         assert 0.04 <= rate <= 0.12, f"preferred_corridor missing rate {rate:.3f}"
 
-    def test_leads_min_budget_missingness(self, leads_df: pl.DataFrame) -> None:
-        rate = _null_rate(leads_df, "min_budget_mxn")
-        assert 0.01 <= rate <= 0.08, f"min_budget_mxn missing rate {rate:.3f}"
+    def test_leads_rent_budget_missingness(self, leads_df: pl.DataFrame) -> None:
+        rent_leads = leads_df.filter(pl.col("search_modality").is_in(["rent", "both"]))
+        rate = rent_leads["min_budget_mxn_rent_monthly"].null_count() / rent_leads.height
+        assert 0.01 <= rate <= 0.08, f"rent budget missing rate {rate:.3f}"
 
     def test_attrs_vertical_height_missingness(self, attrs_df: pl.DataFrame) -> None:
         rate = _null_rate(attrs_df, "vertical_height_m")
@@ -243,6 +244,36 @@ class TestGeoConsistency:
     def test_no_complex_type(self, spots_df: pl.DataFrame) -> None:
         types = spots_df["type_name"].unique().to_list()
         assert "Complex" not in types, "Spots must not include Complex type"
+
+
+def test_avg_price_uses_rentable_only(
+    market_df: pl.DataFrame, spots_df: pl.DataFrame,
+):
+    """market_context.avg_price_sqm_mxn reflects rent/both spots only."""
+    # Check that any non-null avg_price corresponds to corridors/sectors
+    # that have rentable spots (modality rent or both)
+    rentable = set()
+    for row in spots_df.filter(pl.col("modality").is_in(["rent", "both"])).iter_rows(named=True):
+        rentable.add((row["corridor"], row["sector_name"]))
+    for row in market_df.iter_rows(named=True):
+        key = (row["corridor"], row["sector"])
+        if key in rentable:
+            assert row["avg_price_sqm_mxn"] is not None, f"avg_price null for rentable {key}"
+
+
+def test_avg_price_ignores_sale_only_inventory(config: AssessmentConfig) -> None:
+    spots = pl.DataFrame({
+        "state": ["Jalisco", "Jalisco"],
+        "municipality": ["Guadalajara", "Guadalajara"],
+        "corridor": ["Centro", "Centro"],
+        "sector_name": ["Office", "Office"],
+        "price_sqm_mxn_rent": [350.0, None],
+    })
+
+    market = generate_market_context(spots, SeedRng.from_config(config), config)
+
+    assert market.height > 0
+    assert market["avg_price_sqm_mxn"].min() >= 315.0
 
 
 # ======================================================================
