@@ -35,6 +35,28 @@ class TestCandidateBundle:
         assert len(csvs) >= 6, f"Expected >=6 CSVs, got {len(csvs)}: {csvs}"
         assert len(pqs) >= 6, f"Expected >=6 Parquets, got {len(pqs)}: {pqs}"
 
+    def test_bundle_contains_feature_dictionary(self, tmp_path):
+        output = str(tmp_path / "test.zip")
+        result = _run_package("data", output)
+        assert result.returncode == 0, f"Package failed: {result.stderr}"
+        with zipfile.ZipFile(output) as zf:
+            names = zf.namelist()
+        assert any("feature_dictionary.md" in n for n in names), "Missing feature_dictionary.md"
+
+    def test_bundle_docs_no_internal_references(self, tmp_path):
+        """Candidate docs must not reference excluded internal files."""
+        output = str(tmp_path / "test.zip")
+        result = _run_package("data", output)
+        assert result.returncode == 0
+        with zipfile.ZipFile(output) as zf:
+            names = zf.namelist()
+            candidate_docs = [n for n in names if n.endswith(".md")]
+            forbidden_refs = ["synthetic-data-guide.md", "reviewer-rubric.md"]
+            for doc_name in candidate_docs:
+                content = zf.read(doc_name).decode("utf-8")
+                for forbidden in forbidden_refs:
+                    assert forbidden not in content, f"{doc_name} references {forbidden}"
+
     def test_bundle_excludes_evaluation_files(self, tmp_path):
         output = str(tmp_path / "test.zip")
         result = _run_package("data", output)

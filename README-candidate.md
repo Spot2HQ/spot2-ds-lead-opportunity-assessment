@@ -19,14 +19,18 @@ Recibes 6 tablas relacionales. Cada una está disponible en formato CSV y Parque
 
 | Tabla | Filas (aprox) | Contenido |
 |-------|---------------|-----------|
-| `leads` | ~5,000 | Datos del lead: tipo de usuario, sector objetivo, presupuesto, ubicación preferida |
+| `leads` | ~5,000 | Datos del lead: tipo de usuario, sector objetivo, dos familias de presupuesto según la modalidad (renta mensual y compra total), ubicación preferida |
 | `spots` | ~2,000–4,000 | Catálogo de inmuebles: sector, precio por m², área, ubicación, modalidad |
 | `spot_attributes` | ~2,000–4,000 | Características del inmueble: iluminación, cajones de estacionamiento, altura, amenidades |
 | `inquiries` | ~15,000–25,000 | Historial de contacto lead-inmueble: canal, área solicitada, urgencia |
 | `market_context` | ~500 | Contexto de mercado por estado/municipio/corredor/sector/mes |
 | `availability_snapshot` | ~20,000–40,000 | Estado de disponibilidad por inmueble en distintos momentos |
 
+Consulta `feature_dictionary.md` para el detalle completo de cada campo.
+
 > Nota: algunas etiquetas usadas para evaluación (como los resultados de conversión) se omiten intencionalmente; tus modelos deben predecir o inferir las variables objetivo relevantes.
+
+Parte del reto consiste en definir y construir tu propio target o proxy de conversión a partir de los datos disponibles. Debes justificar qué evento consideras como éxito, qué ventana temporal utilizas y cuáles son las limitaciones de tu definición.
 
 ### Cargar los datos
 
