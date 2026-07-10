@@ -1,4 +1,4 @@
-# Rubrica de evaluacion - Data Scientist Lead
+# Rubrica de evaluacion - Data Scientist
 
 Guia para evaluar el technical assessment. Cada candidato entrega: notebook, one-pager, slides, y prompt de IA usado.
 
