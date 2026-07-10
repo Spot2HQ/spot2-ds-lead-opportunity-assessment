@@ -1,6 +1,6 @@
-# Data Scientist Lead - Opportunity Assessment
+# Data Scientist - Opportunity Assessment
 
-Assessment tecnico para candidatos a Data Scientist Lead en Spot2. Centrado en el **Lead Opportunity Score**: un modelo que predice no solo si un lead va a convertir, sino si el inventario actual de inmuebles comerciales puede atenderlo.
+Assessment tecnico para candidatos a Data Scientist en Spot2. Centrado en el **Lead Opportunity Score**: un modelo que predice no solo si un lead va a convertir, sino si el inventario actual de inmuebles comerciales puede atenderlo.
 
 ## Que incluye este paquete
 

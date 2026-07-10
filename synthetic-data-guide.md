@@ -1,6 +1,6 @@
 # Guia de datos sinteticos
 
-Este documento especifica las tablas, esquemas, reglas de generacion y advertencias para producir los datos del Data Scientist Lead Assessment.
+Este documento especifica las tablas, esquemas, reglas de generacion y advertencias para producir los datos del Data Scientist Assessment.
 
 No incluye datos reales de clientes. Todo es sintetico. No incluye PII.
 
