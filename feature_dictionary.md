@@ -16,7 +16,7 @@ Este documento describe la granularidad, llaves de unión y unidades de las tabl
 
 - `price_sqm_mxn_rent`: renta mensual por metro cuadrado (MXN/m²/mes). Solo se puebla para inmuebles en renta o ambas modalidades (`rent`, `both`). Es nulo para venta pura (`sale`).
 - `price_total_mxn_rent`: renta total mensual (MXN/mes) = `area_sqm × price_sqm_mxn_rent`. Sigue la misma regla de nulabilidad.
-- `price_sqm_mxn_sale`: precio de venta por metro cuadrado (MXN/m²) = `price_sqm_mxn_rent × 180 × aleatorio`. Solo se puebla para inmuebles en venta o ambas modalidades (`sale`, `both`). Es nulo para renta pura (`rent`).
+- `price_sqm_mxn_sale`: precio de venta por metro cuadrado en MXN/m². Solo se puebla para inmuebles en venta o ambas modalidades (`sale`, `both`). Es nulo para inmuebles de renta pura (`rent`).
 - `price_total_mxn_sale`: precio de venta total (MXN) = `area_sqm × price_sqm_mxn_sale`. Sigue la misma regla de nulabilidad.
 - `maintenance_cost_mxn`: costo de mantenimiento mensual (MXN/mes). Solo se puebla para inmuebles en renta o ambas modalidades. Es nulo para venta pura.
 

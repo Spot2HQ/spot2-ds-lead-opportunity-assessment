@@ -1,4 +1,4 @@
-# Data Scientist Lead — Evaluación Técnica
+# Data Scientist — Evaluación Técnica
 
 Gracias por aceptar este reto. Lo diseñamos para reflejar el tipo de problemas que resolverías día a día en Spot2.
 
@@ -26,7 +26,7 @@ Recibes 6 tablas relacionales. Cada una está disponible en formato CSV y Parque
 | `market_context` | ~500 | Contexto de mercado por estado/municipio/corredor/sector/mes |
 | `availability_snapshot` | ~20,000–40,000 | Estado de disponibilidad por inmueble en distintos momentos |
 
-Consulta `feature_dictionary.md` para el detalle completo de cada campo.
+Consulta `feature_dictionary.md` para una guía de los campos principales, sus unidades, relaciones entre tablas y criterios de interpretación.
 
 > Nota: algunas etiquetas usadas para evaluación (como los resultados de conversión) se omiten intencionalmente; tus modelos deben predecir o inferir las variables objetivo relevantes.
 

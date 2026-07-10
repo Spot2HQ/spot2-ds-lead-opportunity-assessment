@@ -1,4 +1,4 @@
-# Data Scientist Lead - Technical Assessment
+# Data Scientist - Technical Assessment
 
 ## Lead Opportunity Score: Prioriza los leads correctos
 
@@ -39,7 +39,7 @@ El archivo `outcomes.*` (CSV y Parquet) no se entrega al candidato. Se usa solo 
 
 Parte del reto consiste en definir y construir tu propio target o proxy de conversión a partir de los datos disponibles. Debes justificar qué evento consideras como éxito (¿visita agendada? ¿respuesta del broker? ¿cierre?), qué ventana temporal o punto de corte utilizas y cuáles son las limitaciones de tu definición.
 
-El detalle de cada columna, sus unidades y cómo interpretarlas está en `feature_dictionary.md`.
+Consulta `feature_dictionary.md` para una guía de los campos principales, sus unidades, relaciones entre tablas y criterios de interpretación.
 
 ---
 
